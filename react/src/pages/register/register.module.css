@@ -1,0 +1,19 @@
+
+
+
+form {
+    padding: 1rem;
+}
+.sp-n {
+font-style: oblique;
+color: rgb(117, 116, 116);
+}
+
+.active {
+    color: white;
+    background-color: green;
+}
+.error {
+    color: red;
+    font-style: oblique;
+}
