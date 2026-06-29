@@ -107,7 +107,7 @@ export default function Register() {
                     >Sign Up</button>
                 </div>
             </div>
-            {err && <p className={css['error']}>{err}</p>}
+            {err && <p className={css['error']}>{err}❌</p>}
         </>
     )
 }
