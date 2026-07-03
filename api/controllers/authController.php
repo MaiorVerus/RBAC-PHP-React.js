@@ -3,8 +3,8 @@
 
 
 
-require "api/config/db.php";
-require "api/helpers/JwtHelper.php";
+require __DIR__ . "/../config/db.php";
+require __DIR__ . "/../helpers/JwtHelper.php";
 
 class AuthController
 {
@@ -80,7 +80,8 @@ class AuthController
             return;
         }
 
-        $token = JwtHelper::generate([
+        $jwtHelper = new JwtHelper();
+        $token = $jwtHelper->generateToken([
             'id'    => $user['id'],
             'email' => $user['email'],
             'role'  => $user['role'] ?? 'user',
