@@ -2,8 +2,7 @@
 
 
 
-
-require __DIR__ . "/../config/db.php";
+require __DIR__ . "/../config/Database.php";
 require __DIR__ . "/../helpers/JwtHelper.php";
 
 class AuthController
@@ -51,12 +50,16 @@ class AuthController
         $hashed = password_hash($password, PASSWORD_BCRYPT);
 
         $stmt = $this->pdo->prepare(
-            "INSERT INTO users (name, email, password) VALUES (?, ?, ?)"
+            "INSERT INTO users (name, email, password) VALUES (:name, :email, :password)"
         );
-        $stmt->execute([$name, $email, $hashed]);
+        $stmt->execute([
+            'name' => $name,
+            'email' => $email,
+            'password' => $hashed
+        ]);
 
         http_response_code(201);
-        echo json_encode(['message' => 'Account created successfully']);
+        echo json_encode(['message' => 'Account created successfully ✔']);
     }
 
     public function login(?array $body): void
@@ -70,13 +73,13 @@ class AuthController
         $email    = trim(strtolower($body['email']));
         $password = $body['password'];
 
-        $stmt = $this->pdo->prepare("SELECT * FROM users WHERE email = ?");
-        $stmt->execute([$email]);
+        $stmt = $this->pdo->prepare("SELECT * FROM users WHERE email = :email");
+        $stmt->execute(['email' => $email]);
         $user = $stmt->fetch();
 
         if (!$user || !password_verify($password, $user['password'])) {
             http_response_code(401);
-            echo json_encode(['error' => 'Invalid credentials']);
+            echo json_encode(['error' => 'Invalid credentials ❌']);
             return;
         }
 
@@ -89,7 +92,7 @@ class AuthController
 
         http_response_code(200);
         echo json_encode([
-            'message' => 'Login successful',
+            'message' => 'Login successful ✔',
             'token'   => $token,
         ]);
     }
@@ -97,9 +100,9 @@ class AuthController
     private function emailExists(string $email): bool
     {
         $stmt = $this->pdo->prepare(
-            "SELECT id FROM users WHERE email = ?"
+            "SELECT id FROM users WHERE email = :email"
         );
-        $stmt->execute([$email]);
+        $stmt->execute(['email' => $email]);
         return (bool) $stmt->fetch();
     }
 }
