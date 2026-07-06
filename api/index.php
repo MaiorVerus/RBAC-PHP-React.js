@@ -11,8 +11,8 @@ $dotenv->load();
 // [A] Load your own classes — order matters
 // Database first, then helpers, then controllers that USE them
 require __DIR__ . '/config/Database.php';
-require __DIR__ . '/helpers/jwt.php';
-require __DIR__ . '/helpers/responce.php';
+require __DIR__ . '/helpers/JwtHelper.php';
+require __DIR__ . '/helpers/ResponseHelper.php';
 require __DIR__ . '/controllers/authController.php';
 
 // ============================================================
