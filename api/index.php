@@ -3,25 +3,61 @@
 // ============================================================
 // 1. BOOTSTRAP
 // ============================================================
-require __DIR__ . '/../vendor/autoload.php';
+$autoloadPaths = [
+    __DIR__ . '/vendor/autoload.php',
+    __DIR__ . '/../vendor/autoload.php',
+    dirname(__DIR__) . '/vendor/autoload.php',
+];
 
-$dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/../');
+$autoloadFile = null;
+foreach ($autoloadPaths as $path) {
+    if (file_exists($path)) {
+        $autoloadFile = $path;
+        break;
+    }
+}
+
+if ($autoloadFile === null) {
+    header('Content-Type: application/json', true, 500);
+    echo json_encode(['error' => 'Composer autoload file not found. Run composer install and verify the API directory structure.']);
+    exit();
+}
+
+require_once $autoloadFile;
+
+$dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
 $dotenv->load();
 
 // [A] Load your own classes — order matters
 // Database first, then helpers, then controllers that USE them
-require __DIR__ . '/config/Database.php';
-require __DIR__ . '/helpers/JwtHelper.php';
-require __DIR__ . '/helpers/ResponseHelper.php';
-require __DIR__ . '/controllers/authController.php';
+require_once __DIR__ . '/config/Database.php';
+require_once __DIR__ . '/helpers/JwtHelper.php';
+require_once __DIR__ . '/helpers/ResponseHelper.php';
+require_once __DIR__ . '/controllers/authController.php';
 
 // ============================================================
 // 2. CORS
 // ============================================================
 header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: http://localhost:5173');
+
+$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+$allowedOrigins = [
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+];
+
+if ($origin !== '' && in_array($origin, $allowedOrigins, true)) {
+    header("Access-Control-Allow-Origin: $origin");
+    header('Vary: Origin');
+} else {
+    header('Access-Control-Allow-Origin: *');
+}
+
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization');
+header('Access-Control-Allow-Credentials: true');
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
@@ -32,7 +68,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 // 3. PARSE REQUEST
 // ============================================================
 $method = $_SERVER['REQUEST_METHOD'];
-$uri    = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+$uri    = urldecode(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) ?? '/');
+$uri    = str_replace(['/CRUD-RBAC', '/CRUD RBAC'], '', $uri);
 $body   = json_decode(file_get_contents('php://input'), true);
 
 // ============================================================

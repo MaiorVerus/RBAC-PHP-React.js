@@ -6,9 +6,24 @@ const AuthContext = createContext(null)
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
     const stored = localStorage.getItem('rbac_user')
-    return stored ? JSON.parse(stored) : null
+    if (!stored || stored === 'undefined' || stored === 'null') {
+      localStorage.removeItem('rbac_user')
+      return null
+    }
+
+    try {
+      return JSON.parse(stored)
+    } catch (error) {
+      localStorage.removeItem('rbac_user')
+      return null
+    }
   })
-  const [token, setToken] = useState(() => localStorage.getItem('rbac_token'))
+  const [token, setToken] = useState(() => {
+    const storedToken = localStorage.getItem('rbac_token')
+    return storedToken && storedToken !== 'undefined' && storedToken !== 'null'
+      ? storedToken
+      : null
+  })
   const [loading, setLoading] = useState(Boolean(token))
 
   useEffect(() => {

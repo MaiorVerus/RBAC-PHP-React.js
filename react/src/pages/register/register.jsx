@@ -33,6 +33,10 @@ export default function Register() {
                 : await signup(formData)
 
             const { token, user } = response.data
+            console.log('API response:', response.data) // Log the entire response data for debugging
+            if (!user) {
+                throw new Error("Signup succeeded but API did not return user data")
+              }
             setToken(token)
             setUser(user)
             localStorage.setItem('rbac_token', token)

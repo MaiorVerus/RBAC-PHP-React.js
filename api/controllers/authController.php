@@ -2,8 +2,8 @@
 
 
 
-require __DIR__ . "/../config/Database.php";
-require __DIR__ . "/../helpers/JwtHelper.php";
+require_once __DIR__ . "/../config/Database.php";
+require_once __DIR__ . "/../helpers/JwtHelper.php";
 
 class AuthController
 {
@@ -16,18 +16,29 @@ class AuthController
 
     public function register(?array $body): void
     {
-        $required = ['name', 'email', 'password'];
-        foreach ($required as $field) {
-            if (empty($body[$field])) {
-                http_response_code(422);
-                echo json_encode(['error' => "Field '$field' is required"]);
-                return;
-            }
+        $body = is_array($body) ? $body : [];
+
+        if (empty($body['name']) && empty($body['username'])) {
+            http_response_code(422);
+            echo json_encode(['error' => "Field 'name' is required"]);
+            return;
         }
 
-        $name     = trim($body['name']);
-        $email    = trim(strtolower($body['email']));
-        $password = $body['password'];
+        if (empty($body['email'])) {
+            http_response_code(422);
+            echo json_encode(['error' => "Field 'email' is required"]);
+            return;
+        }
+
+        if (empty($body['password'])) {
+            http_response_code(422);
+            echo json_encode(['error' => "Field 'password' is required"]);
+            return;
+        }
+
+        $name     = trim((string) ($body['name'] ?? $body['username'] ?? ''));
+        $email    = trim(strtolower((string) ($body['email'] ?? '')));
+        $password = (string) $body['password'];
 
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             http_response_code(422);
@@ -50,16 +61,38 @@ class AuthController
         $hashed = password_hash($password, PASSWORD_BCRYPT);
 
         $stmt = $this->pdo->prepare(
-            "INSERT INTO users (name, email, password) VALUES (:name, :email, :password)"
+            "INSERT INTO users (name, email, password, role) VALUES (:name, :email, :password, :role)"
         );
         $stmt->execute([
             'name' => $name,
             'email' => $email,
-            'password' => $hashed
+            'password' => $hashed,
+            'role' => 'user'
+        ]);
+
+        $userId = (int) $this->pdo->lastInsertId();
+        $userStmt = $this->pdo->prepare("SELECT id, name, email, role FROM users WHERE id = :id");
+        $userStmt->execute(['id' => $userId]);
+        $createdUser = $userStmt->fetch(PDO::FETCH_ASSOC);
+
+        $jwtHelper = new JwtHelper();
+        $token = $jwtHelper->generateToken([
+            'id' => $createdUser['id'] ?? $userId,
+            'email' => $createdUser['email'] ?? $email,
+            'role' => $createdUser['role'] ?? 'user',
         ]);
 
         http_response_code(201);
-        echo json_encode(['message' => 'Account created successfully ✔']);
+        echo json_encode([
+            'message' => 'Account created successfully',
+            'token' => $token,
+            'user' => [
+                'id' => $createdUser['id'] ?? $userId,
+                'name' => $createdUser['name'] ?? $name,
+                'email' => $createdUser['email'] ?? $email,
+                'role' => $createdUser['role'] ?? 'user',
+            ],
+        ]);
     }
 
     public function login(?array $body): void
@@ -94,6 +127,12 @@ class AuthController
         echo json_encode([
             'message' => 'Login successful ✔',
             'token'   => $token,
+            'user'    => [
+                'id'    => $user['id'],
+                'name'  => $user['name'],
+                'email' => $user['email'],
+                'role'  => $user['role'] ?? 'user',
+            ],
         ]);
     }
 

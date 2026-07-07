@@ -1,0 +1,28 @@
+<IfModule mod_headers.c>
+    # Allow requests from the React dev server
+    Header always set Access-Control-Allow-Origin "http://localhost:5173"
+    Header always set Access-Control-Allow-Methods "GET, POST, OPTIONS, PUT, DELETE"
+    Header always set Access-Control-Allow-Headers "Content-Type, Authorization"
+    Header always set Access-Control-Allow-Credentials "true"
+</IfModule>
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /CRUD-RBAC/api/
+
+    # Return 200 for preflight OPTIONS requests so CORS checks succeed
+    RewriteCond %{REQUEST_METHOD} OPTIONS
+    RewriteRule ^(.*)$ - [R=200,L]
+
+    # Route all non-file requests to index.php (front controller)
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^ index.php [L]
+</IfModule>
+
+# Fallback: if mod_headers isn't available, try the header directive
+<IfModule !mod_headers.c>
+    <IfModule mod_setenvif.c>
+        SetEnvIf Origin "(.*)" CORS_ALLOW_ORIGIN=$1
+    </IfModule>
+</IfModule>
